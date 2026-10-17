@@ -229,7 +229,7 @@ server.listen(port, '0.0.0.0', () => {
 });
 console.log("Discordログイン処理を開始します");
 
-client.login(config.token).catch((error) => {
+client.login(process.env.TOKEN).catch((error) => {
   console.error("Discordログイン失敗:", error);
 });
 
