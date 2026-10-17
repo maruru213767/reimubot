@@ -1,5 +1,6 @@
 
 import {
+  import http from 'node:http';
   Client,
   GatewayIntentBits,
   Events,
@@ -213,6 +214,19 @@ client.on(Events.MessageCreate, async message => {
   });
 });
 
+// Render用のWebサーバー
+const port = process.env.PORT || 10000;
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/plain; charset=utf-8',
+  });
+  res.end('reimubot is running');
+});
+
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Webサーバー起動: port ${port}`);
+});
 client.login(config.token);
 
 async function shutdown() {
