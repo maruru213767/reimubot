@@ -18,6 +18,18 @@ const client = new Client({
   ],
 });
 
+client.on('debug', (info) => {
+  console.log('[Discord DEBUG]', info);
+});
+
+client.on('warn', (info) => {
+  console.warn('[Discord WARN]', info);
+});
+
+client.on('error', (error) => {
+  console.error('[Discord ERROR]', error);
+});
+
 const DATA_FILE = './memory.json';
 const MAX_HISTORY = 20;
 
@@ -224,13 +236,18 @@ const server = http.createServer((req, res) => {
   res.end('reimubot is running');
 });
 
-server.listen(port, '0.0.0.0', () => {
-  console.log(`Webサーバー起動: port ${port}`);
-});
-console.log("Discordログイン処理を開始します");
+console.log('Discordログイン処理を開始します');
 
-client.login(process.env.TOKEN).catch((error) => {
-  console.error("Discordログイン失敗:", error);
+const token = process.env.TOKEN;
+
+console.log('TOKEN設定確認:', token ? '設定あり' : '設定なし');
+
+client.once(Events.ClientReady, (readyClient) => {
+  console.log(`Discordログイン成功: ${readyClient.user.tag}`);
+});
+
+client.login(token).catch((error) => {
+  console.error('Discordログイン失敗:', error);
 });
 
 async function shutdown() {
