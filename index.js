@@ -227,7 +227,13 @@ const server = http.createServer((req, res) => {
 server.listen(port, '0.0.0.0', () => {
   console.log(`Webサーバー起動: port ${port}`);
 });
-client.login(config.token);
+client.once(Events.ClientReady, (readyClient) => {
+  console.log(`Discordログイン成功: ${readyClient.user.tag}`);
+});
+
+client.login(config.token).catch((error) => {
+  console.error("Discordログイン失敗:", error);
+});
 
 async function shutdown() {
   await saveData();
