@@ -1,11 +1,11 @@
 
 import {
-  import http from 'node:http';
   Client,
   GatewayIntentBits,
   Events,
   PermissionFlagsBits,
 } from 'discord.js';
+import http from 'node:http';
 import ollama from 'ollama';
 import fs from 'node:fs/promises';
 import config from './config.json' with { type: 'json' };
