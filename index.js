@@ -229,10 +229,6 @@ server.listen(port, '0.0.0.0', () => {
 });
 console.log("Discordログイン処理を開始します");
 
-client.once(Events.ClientReady, (readyClient) => {
-  console.log(`Discordログイン成功: ${readyClient.user.tag}`);
-});
-
 client.login(config.token).catch((error) => {
   console.error("Discordログイン失敗:", error);
 });
