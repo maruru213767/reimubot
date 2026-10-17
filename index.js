@@ -227,6 +227,8 @@ const server = http.createServer((req, res) => {
 server.listen(port, '0.0.0.0', () => {
   console.log(`Webサーバー起動: port ${port}`);
 });
+console.log("Discordログイン処理を開始します");
+
 client.once(Events.ClientReady, (readyClient) => {
   console.log(`Discordログイン成功: ${readyClient.user.tag}`);
 });
