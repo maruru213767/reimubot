@@ -241,9 +241,13 @@ client.once(Events.ClientReady, (readyClient) => {
   console.log(`Discordログイン成功: ${readyClient.user.tag}`);
 });
 
-client.login(token).catch((error) => {
-  console.error('Discordログイン失敗:', error);
-});
+client.login(token)
+  .then(() => {
+    console.log('Discordのログイン処理が完了しました');
+  })
+  .catch((error) => {
+    console.error('Discordログイン失敗:', error);
+  });
 
 async function shutdown() {
   await saveData();
