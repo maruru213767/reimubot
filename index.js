@@ -71,12 +71,6 @@ function enqueue(guildId, task) {
   });
 }
 
-client.once(Events.ClientReady, readyClient => {
-  console.log(`ログインしました: ${readyClient.user.tag}`);
-  console.log(`使用モデル: ${config.model}`);
-});
-
-
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
   if (!interaction.inGuild()) {
@@ -122,9 +116,6 @@ client.on(Events.InteractionCreate, async interaction => {
       }).catch(console.error);
     }
   }
-});
-
-client.on(Events.InteractionCreate, async interaction => {
 });
 
 client.on(Events.MessageCreate, async message => {
@@ -234,6 +225,10 @@ const server = http.createServer((req, res) => {
     'Content-Type': 'text/plain; charset=utf-8',
   });
   res.end('reimubot is running');
+});
+
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Webサーバー起動: port ${port}`);
 });
 
 console.log('Discordログイン処理を開始します');
