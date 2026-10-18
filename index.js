@@ -18,6 +18,18 @@ const client = new Client({
   ],
 });
 
+client.on('shardError', (error, shardId) => {
+  console.error(`[Discord SHARD ERROR ${shardId}]`, error);
+});
+
+client.on('shardDisconnect', (event, shardId) => {
+  console.error(
+    `[Discord DISCONNECT ${shardId}]`,
+    'code:', event.code,
+    'reason:', event.reason
+  );
+});
+
 client.on('debug', (info) => {
   console.log('[Discord DEBUG]', info);
 });
