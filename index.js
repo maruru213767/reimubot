@@ -30,6 +30,22 @@ client.on('error', (error) => {
   console.error('[Discord ERROR]', error);
 });
 
+client.on('shardConnecting', (id) => {
+  console.log('[Discord] 接続開始:', id);
+});
+
+client.on('shardReady', (id) => {
+  console.log('[Discord] 接続成功:', id);
+});
+
+client.on('shardDisconnect', (event, id) => {
+  console.log('[Discord] 切断:', id, event.code, event.reason);
+});
+
+client.on('shardReconnecting', (id) => {
+  console.log('[Discord] 再接続中:', id);
+});
+
 const DATA_FILE = './memory.json';
 const MAX_HISTORY = 20;
 
