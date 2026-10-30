@@ -98,6 +98,25 @@ client.once('ready', async () => {
     }
 });
 
+// Discord接続状況の確認
+client.on('debug', message => {
+    console.log('[Discord DEBUG]', message);
+});
+
+client.on('warn', message => {
+    console.warn('[Discord WARN]', message);
+});
+
+client.on('error', error => {
+    console.error('[Discord ERROR]', error);
+});
+
+client.on('shardError', error => {
+    console.error('[Discord SHARD ERROR]', error);
+});
+
+console.log('Discordログイン処理を開始します');
+
 client.login(TOKEN).catch(error => {
     console.error('Discordログインエラー:', error);
     process.exit(1);
