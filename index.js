@@ -154,11 +154,18 @@ client.on('invalidated', () => {
     console.error('[Discord] セッションが無効になりました');
 });
 
+console.log('Discordログイン処理を開始します');
+
+const loginTimeout = setTimeout(() => {
+    console.error('Discordログインが30秒以内に完了しませんでした');
+}, 30000);
+
 client.login(TOKEN)
     .then(() => {
+        clearTimeout(loginTimeout);
         console.log('Discord login() 成功');
     })
     .catch(error => {
+        clearTimeout(loginTimeout);
         console.error('Discordログインエラー:', error);
-        process.exit(1);
     });
