@@ -1,4 +1,5 @@
 
+import http from 'node:http';
 import 'dotenv/config';
 import {
     Client,
@@ -32,6 +33,20 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent
     ]
+});
+
+// Render用Webサーバー
+const PORT = process.env.PORT || 10000;
+
+const server = http.createServer((req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/plain; charset=utf-8'
+    });
+    res.end('Discord AI Bot is running!');
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Webサーバー起動: port ${PORT}`);
 });
 
 // スラッシュコマンド
@@ -85,4 +100,5 @@ client.once('ready', async () => {
 
 client.login(TOKEN).catch(error => {
     console.error('Discordログインエラー:', error);
+    process.exit(1);
 });
