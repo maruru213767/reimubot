@@ -131,41 +131,49 @@ client.on('warn', message => {
     console.warn('[Discord WARN]', message);
 });
 
-console.log('Discordログイン処理を開始します');
 
-client.on('shardResume', shardId => {
-    console.log(`[Discord] Shard ${shardId} 接続復帰`);
-});
+console.log('Discord API通信テストを開始します');
 
-client.on('shardDisconnect', (event, shardId) => {
-    console.error('[Discord] 切断詳細:', {
-        shardId,
-        code: event.code,
-        reason: event.reason,
-        wasClean: event.wasClean
-    });
-});
+async function diagnoseAndLogin() {
+    try {
+        const response = await fetch(
+            'https://discord.com/api/v10/gateway/bot',
+            {
+                headers: {
+                    Authorization: `Bot ${TOKEN}`
+                },
+                signal: AbortSignal.timeout(15000)
+            }
+        );
 
-client.on('shardError', error => {
-    console.error('[Discord] Shard接続エラー詳細:', error);
-});
+        console.log('Discord APIステータス:', response.status);
 
-client.on('invalidated', () => {
-    console.error('[Discord] セッションが無効になりました');
-});
+        const data = await response.json();
 
-console.log('Discordログイン処理を開始します');
+        if (response.ok) {
+            console.log('Discord API通信成功');
+            console.log('Gateway URL取得成功:', Boolean(data.url));
+        } else {
+            console.error('Discord APIエラー:', {
+                message: data.message,
+                code: data.code
+            });
+        }
 
-const loginTimeout = setTimeout(() => {
-    console.error('Discordログインが30秒以内に完了しませんでした');
-}, 30000);
+    } catch (error) {
+        console.error('Discord API通信失敗:', error.message);
+    }
 
-client.login(TOKEN)
-    .then(() => {
-        clearTimeout(loginTimeout);
-        console.log('Discord login() 成功');
-    })
-    .catch(error => {
-        clearTimeout(loginTimeout);
-        console.error('Discordログインエラー:', error);
-    });
+    console.log('Discordログイン処理を開始します');
+
+    client.login(TOKEN)
+        .then(() => {
+            console.log('Discord login() 成功');
+        })
+        .catch(error => {
+            console.error('Discordログインエラー:', error);
+        });
+}
+
+diagnoseAndLogin();
+
