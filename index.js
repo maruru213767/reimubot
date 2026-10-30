@@ -133,6 +133,27 @@ client.on('warn', message => {
 
 console.log('Discordログイン処理を開始します');
 
+client.on('shardResume', shardId => {
+    console.log(`[Discord] Shard ${shardId} 接続復帰`);
+});
+
+client.on('shardDisconnect', (event, shardId) => {
+    console.error('[Discord] 切断詳細:', {
+        shardId,
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean
+    });
+});
+
+client.on('shardError', error => {
+    console.error('[Discord] Shard接続エラー詳細:', error);
+});
+
+client.on('invalidated', () => {
+    console.error('[Discord] セッションが無効になりました');
+});
+
 client.login(TOKEN)
     .then(() => {
         console.log('Discord login() 成功');
