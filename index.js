@@ -169,34 +169,6 @@ async function generateReply(guildId) {
     return answer;
 }
 
-// AIの返答を生成
-async function generateReply(guildId) {
-    const settings = getSettings(guildId);
-    const history = getHistory(guildId);
-
-    const personality = settings.personality
-        ? `${DEFAULT_PERSONALITY}\n${settings.personality}`
-        : DEFAULT_PERSONALITY;
-
-    const response = await openai.responses.create({
-        model: OPENAI_MODEL,
-        instructions: personality,
-        input: history.map(message => ({
-            role: message.role,
-            content: message.content
-        })),
-        max_output_tokens: 700
-    });
-
-    const answer = response.output_text?.trim();
-
-    if (!answer) {
-        throw new Error('AIから返答がありませんでした。');
-    }
-
-    return answer;
-}
-
 // Discordクライアント
 const client = new Client({
     intents: [
