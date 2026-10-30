@@ -221,6 +221,8 @@ client.once('ready', async () => {
 
 // スラッシュコマンドの処理
 client.on('interactionCreate', async interaction => {
+    console.log('[受信確認] コマンドイベントを受信しました:', interaction.commandName);
+
     if (!interaction.isChatInputCommand()) return;
     if (!interaction.guildId) return;
 
