@@ -365,22 +365,22 @@ async function sendLongMessage(channel, text) {
 }
 
 // 通常メッセージへの自動返信
-client.on('messageCreate', async message => {
+cclient.on('messageCreate', async message => {
     console.log('[受信確認] メッセージを受信:', message.content);
     if (!message.guildId || message.author.bot) return;
 
-   const settings = getSettings(message.guildId);
-        console.log('[確認] 設定チャンネル:', settings.channel_id);
-        console.log('[確認] 現在のチャンネル:', message.channelId);
-    );
+    const settings = getSettings(message.guildId);
+
+    console.log('[確認] 設定チャンネル:', settings.channel_id);
+    console.log('[確認] 現在のチャンネル:', message.channelId);
 
     // 設定チャンネル以外は無視
     if (message.channelId !== settings.channel_id) {
-    console.log('[確認] チャンネルが一致しないため終了');
-    return;
-}
+        console.log('[確認] チャンネルが一致しないため終了');
+        return;
+    }
 
-console.log('[確認] チャンネル一致！AI処理を開始します');
+    console.log('[確認] チャンネル一致！AI処理を開始します');
 
     const content = message.content?.trim();
 
