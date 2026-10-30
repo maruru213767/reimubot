@@ -4,7 +4,6 @@ import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import OpenAI from 'openai';
 
 import {
     Client,
@@ -18,8 +17,8 @@ import {
 // 環境変数
 const TOKEN = process.env.DISCORD_TOKEN || process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.4-mini';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 const DATA_DIR = process.env.DATA_DIR || './data';
 
 console.log('--- 環境変数チェック ---');
@@ -29,8 +28,8 @@ console.log('CLIENT_ID:', CLIENT_ID ? '読み込み成功' : '読み込み失敗
 console.log('------------------------');
 
 // 設定確認
-if (!TOKEN || !CLIENT_ID || !OPENAI_API_KEY) {
-    console.error('TOKEN、CLIENT_ID、OPENAI_API_KEYのいずれかが設定されていません。');
+if (!TOKEN || !CLIENT_ID || !GEMINI_API_KEY) {
+    console.error('TOKEN、CLIENT_ID、GEMINI_API_KEYのいずれかが設定されていません。');
     process.exit(1);
 }
 
@@ -99,15 +98,8 @@ function getHistory(guildId) {
     `).all(guildId).reverse();
 }
 
+// Gemini接続
 
-// OpenAI接続
-const openai = new OpenAI({
-    apiKey: OPENAI_API_KEY,
-    timeout: 60000,
-    maxRetries: 2
-});
-
-// デフォルトの性格
 const DEFAULT_PERSONALITY = `
 あなたはDiscordサーバーで会話する日本語のAIです。
 
@@ -118,6 +110,64 @@ const DEFAULT_PERSONALITY = `
 ・知らないことは正直に答えてください。
 ・基本的に簡潔に返答してください。
 `;
+
+// AIの返答を生成
+async function generateReply(guildId) {
+    const settings = getSettings(guildId);
+    const history = getHistory(guildId);
+
+    const personality = settings.personality
+        ? `${DEFAULT_PERSONALITY}\n${settings.personality}`
+        : DEFAULT_PERSONALITY;
+
+    const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': GEMINI_API_KEY
+            },
+            body: JSON.stringify({
+                systemInstruction: {
+                    parts: [
+                        { text: personality }
+                    ]
+                },
+                contents: history.map(message => ({
+                    role: message.role === 'assistant' ? 'model' : 'user',
+                    parts: [
+                        { text: message.content }
+                    ]
+                })),
+                generationConfig: {
+                    maxOutputTokens: 700
+                }
+            }),
+            signal: AbortSignal.timeout(60000)
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        console.error('Gemini APIエラー:', data);
+        throw new Error(
+            data.error?.message || `Gemini API Error: ${response.status}`
+        );
+    }
+
+    const answer = data.candidates?.[0]?.content?.parts
+        ?.map(part => part.text || '')
+        .join('')
+        .trim();
+
+    if (!answer) {
+        throw new Error('AIから返答がありませんでした。');
+    }
+
+    return answer;
+}
 
 // AIの返答を生成
 async function generateReply(guildId) {
