@@ -1,6 +1,11 @@
 
 import http from 'node:http';
 import 'dotenv/config';
+import fs from 'node:fs';
+import path from 'node:path';
+import Database from 'better-sqlite3';
+import OpenAI from 'openai';
+
 import {
     Client,
     GatewayIntentBits,
@@ -13,6 +18,9 @@ import {
 // 環境変数
 const TOKEN = process.env.DISCORD_TOKEN || process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.4-mini';
+const DATA_DIR = process.env.DATA_DIR || './data';
 
 console.log('--- 環境変数チェック ---');
 console.log('作業フォルダ:', process.cwd());
@@ -21,9 +29,122 @@ console.log('CLIENT_ID:', CLIENT_ID ? '読み込み成功' : '読み込み失敗
 console.log('------------------------');
 
 // 設定確認
-if (!TOKEN || !CLIENT_ID) {
-    console.error('TOKEN または CLIENT_ID が設定されていません。');
+if (!TOKEN || !CLIENT_ID || !OPENAI_API_KEY) {
+    console.error('TOKEN、CLIENT_ID、OPENAI_API_KEYのいずれかが設定されていません。');
     process.exit(1);
+}
+
+// SQLiteデータベース
+fs.mkdirSync(DATA_DIR, { recursive: true });
+
+const db = new Database(path.join(DATA_DIR, 'bot.sqlite'));
+
+db.pragma('journal_mode = WAL');
+
+db.exec(`
+    CREATE TABLE IF NOT EXISTS guild_settings (
+        guild_id TEXT PRIMARY KEY,
+        channel_id TEXT,
+        personality TEXT NOT NULL DEFAULT ''
+    );
+
+    CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        guild_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_messages_guild
+    ON messages(guild_id, id);
+`);
+
+// サーバー設定取得
+function getSettings(guildId) {
+    return db.prepare(
+        'SELECT * FROM guild_settings WHERE guild_id = ?'
+    ).get(guildId) || {
+        guild_id: guildId,
+        channel_id: null,
+        personality: ''
+    };
+}
+
+// メッセージ保存（最新20件）
+function addMessage(guildId, role, content) {
+    db.prepare(
+        'INSERT INTO messages (guild_id, role, content) VALUES (?, ?, ?)'
+    ).run(guildId, role, content);
+
+    db.prepare(`
+        DELETE FROM messages
+        WHERE guild_id = ?
+        AND id NOT IN (
+            SELECT id FROM messages
+            WHERE guild_id = ?
+            ORDER BY id DESC
+            LIMIT 20
+        )
+    `).run(guildId, guildId);
+}
+
+// 会話履歴取得
+function getHistory(guildId) {
+    return db.prepare(`
+        SELECT role, content
+        FROM messages
+        WHERE guild_id = ?
+        ORDER BY id DESC
+        LIMIT 20
+    `).all(guildId).reverse();
+}
+
+
+// OpenAI接続
+const openai = new OpenAI({
+    apiKey: OPENAI_API_KEY,
+    timeout: 60000,
+    maxRetries: 2
+});
+
+// デフォルトの性格
+const DEFAULT_PERSONALITY = `
+あなたはDiscordサーバーで会話する日本語のAIです。
+
+・自然で親しみやすく会話してください。
+・対面で話しているような雰囲気にしてください。
+・複数人の会話ではユーザー名を区別してください。
+・会話の流れや過去の発言を覚えておいてください。
+・知らないことは正直に答えてください。
+・基本的に簡潔に返答してください。
+`;
+
+// AIの返答を生成
+async function generateReply(guildId) {
+    const settings = getSettings(guildId);
+    const history = getHistory(guildId);
+
+    const personality = settings.personality
+        ? `${DEFAULT_PERSONALITY}\n${settings.personality}`
+        : DEFAULT_PERSONALITY;
+
+    const response = await openai.responses.create({
+        model: OPENAI_MODEL,
+        instructions: personality,
+        input: history.map(message => ({
+            role: message.role,
+            content: message.content
+        })),
+        max_output_tokens: 700
+    });
+
+    const answer = response.output_text?.trim();
+
+    if (!answer) {
+        throw new Error('AIから返答がありませんでした。');
+    }
+
+    return answer;
 }
 
 // Discordクライアント
@@ -95,6 +216,176 @@ client.once('ready', async () => {
         console.log('スラッシュコマンドの登録が完了しました。');
     } catch (error) {
         console.error('コマンド登録エラー:', error);
+    }
+});
+
+// スラッシュコマンドの処理
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isChatInputCommand()) return;
+    if (!interaction.guildId) return;
+
+    const guildId = interaction.guildId;
+
+    try {
+        switch (interaction.commandName) {
+
+            // チャンネル設定
+            case 'set': {
+                const channel = interaction.options.getChannel('channel');
+
+                db.prepare(`
+                    INSERT INTO guild_settings (guild_id, channel_id)
+                    VALUES (?, ?)
+                    ON CONFLICT(guild_id)
+                    DO UPDATE SET channel_id = excluded.channel_id
+                `).run(guildId, channel.id);
+
+                await interaction.reply({
+                    content: `${channel} でAI会話を有効にしました！`,
+                    ephemeral: true
+                });
+                break;
+            }
+
+            // チャンネル解除
+            case 'unset': {
+                db.prepare(`
+                    INSERT INTO guild_settings (guild_id, channel_id)
+                    VALUES (?, NULL)
+                    ON CONFLICT(guild_id)
+                    DO UPDATE SET channel_id = NULL
+                `).run(guildId);
+
+                await interaction.reply({
+                    content: 'AI会話を無効にしました。',
+                    ephemeral: true
+                });
+                break;
+            }
+
+            // 性格設定
+            case 'personality': {
+                const prompt = interaction.options.getString('prompt');
+
+                db.prepare(`
+                    INSERT INTO guild_settings (guild_id, personality)
+                    VALUES (?, ?)
+                    ON CONFLICT(guild_id)
+                    DO UPDATE SET personality = excluded.personality
+                `).run(guildId, prompt);
+
+                await interaction.reply({
+                    content: 'AIの性格を変更しました！',
+                    ephemeral: true
+                });
+                break;
+            }
+
+            // 履歴リセット
+            case 'reset': {
+                db.prepare(
+                    'DELETE FROM messages WHERE guild_id = ?'
+                ).run(guildId);
+
+                await interaction.reply({
+                    content: '会話履歴をリセットしました！',
+                    ephemeral: true
+                });
+                break;
+            }
+        }
+
+    } catch (error) {
+        console.error('コマンド実行エラー:', error);
+
+        const reply = {
+            content: 'コマンド実行中にエラーが発生しました。',
+            ephemeral: true
+        };
+
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp(reply).catch(() => {});
+        } else {
+            await interaction.reply(reply).catch(() => {});
+        }
+    }
+});
+
+// サーバーごとの処理キュー
+const queues = new Map();
+
+function enqueue(guildId, task) {
+    const previous = queues.get(guildId) || Promise.resolve();
+
+    const current = previous
+        .catch(() => {})
+        .then(task);
+
+    queues.set(guildId, current);
+
+    current.finally(() => {
+        if (queues.get(guildId) === current) {
+            queues.delete(guildId);
+        }
+    }).catch(() => {});
+
+    return current;
+}
+
+// Discordの2000文字制限対策
+async function sendLongMessage(channel, text) {
+    for (let i = 0; i < text.length; i += 1900) {
+        await channel.send(text.slice(i, i + 1900));
+    }
+}
+
+// 通常メッセージへの自動返信
+client.on('messageCreate', async message => {
+    if (!message.guildId || message.author.bot) return;
+
+    const settings = getSettings(message.guildId);
+
+    // 設定チャンネル以外は無視
+    if (message.channelId !== settings.channel_id) return;
+
+    const content = message.content?.trim();
+
+    if (!content) return;
+
+    const username =
+        message.member?.displayName || message.author.username;
+
+    const userMessage = `${username}: ${content}`;
+
+    try {
+        await enqueue(message.guildId, async () => {
+
+            // ユーザーの発言を保存
+            addMessage(message.guildId, 'user', userMessage);
+
+            await message.channel.sendTyping();
+
+            try {
+                // AIの返答を生成
+                const answer = await generateReply(message.guildId);
+
+                // AIの返答を保存
+                addMessage(message.guildId, 'assistant', answer);
+
+                // Discordに送信
+                await sendLongMessage(message.channel, answer);
+
+            } catch (error) {
+                console.error('OpenAI返信エラー:', error);
+
+                await message.reply(
+                    'AIとの通信中にエラーが発生したよ。少し待ってから試してね。'
+                ).catch(() => {});
+            }
+        });
+
+    } catch (error) {
+        console.error('メッセージ処理エラー:', error);
     }
 });
 
