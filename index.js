@@ -99,12 +99,20 @@ client.once('ready', async () => {
 });
 
 // Discord接続状況の確認
+
+client.on('debug', message => {
+    // トークンを含むログは表示しない
+    if (message.includes('Provided token')) return;
+
+    console.log('[Discord DEBUG]', message);
+});
+
 client.on('shardReady', shardId => {
     console.log(`[Discord] Shard ${shardId} 接続成功`);
 });
 
 client.on('shardDisconnect', (event, shardId) => {
-    console.log(`[Discord] Shard ${shardId} 切断:`, event.code);
+    console.log(`[Discord] Shard ${shardId} 切断コード: ${event.code}`);
 });
 
 client.on('shardReconnecting', shardId => {
@@ -125,7 +133,11 @@ client.on('warn', message => {
 
 console.log('Discordログイン処理を開始します');
 
-client.login(TOKEN).catch(error => {
-    console.error('Discordログインエラー:', error);
-    process.exit(1);
-});
+client.login(TOKEN)
+    .then(() => {
+        console.log('Discord login() 成功');
+    })
+    .catch(error => {
+        console.error('Discordログインエラー:', error);
+        process.exit(1);
+    });
