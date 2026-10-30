@@ -365,7 +365,7 @@ async function sendLongMessage(channel, text) {
 }
 
 // 通常メッセージへの自動返信
-cclient.on('messageCreate', async message => {
+client.on('messageCreate', async message => {
     console.log('[受信確認] メッセージを受信:', message.content);
     if (!message.guildId || message.author.bot) return;
 
