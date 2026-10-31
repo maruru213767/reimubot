@@ -587,16 +587,15 @@ try {
         }
     );
 
+    const body = await response.text();
+
     console.log('Discord APIステータス:', response.status);
+    console.log('Content-Type:', response.headers.get('content-type'));
+    console.log('Retry-After:', response.headers.get('retry-after'));
+    console.log('Server:', response.headers.get('server'));
+    console.log('CF-Ray:', response.headers.get('cf-ray'));
+    console.log('レスポンス本文:', body.slice(0, 500));
 
-    const result = await response.json();
-
-    if (response.ok) {
-        console.log('Gateway URL取得成功:', result.url);
-        console.log('推奨Shard数:', result.shards);
-    } else {
-        console.error('Discord APIエラー:', result);
-    }
 } catch (error) {
     console.error('Discord API通信失敗:', error.message);
 }
