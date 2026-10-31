@@ -475,6 +475,15 @@ client.on('warn', message => {
 
 console.log('Discord API通信テストを開始します');
 
+fetch('https://discord.com/api/v10/gateway')
+    .then(async response => {
+        console.log('Discord API応答:', response.status);
+        console.log('Discord API結果:', await response.text());
+    })
+    .catch(error => {
+        console.error('Discord API通信エラー:', error);
+    });
+
 async function diagnoseAndLogin() {
     console.log('Discordログイン処理を開始します');
 
