@@ -503,4 +503,24 @@ async function diagnoseAndLogin() {
     }
 }
 
+client.on('error', error => {
+    console.error('[Client ERROR]', error);
+});
+
+client.on('shardError', error => {
+    console.error('[Shard ERROR]', error);
+});
+
+client.on('shardDisconnect', (event, id) => {
+    console.error('[Shard DISCONNECT]', id, event.code, event.reason);
+});
+
+client.on('shardReconnecting', id => {
+    console.log('[Shard RECONNECTING]', id);
+});
+
+client.on('shardReady', id => {
+    console.log('[Shard READY]', id);
+});
+
 diagnoseAndLogin();
