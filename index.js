@@ -543,12 +543,10 @@ client.on('messageCreate', async message => {
     }
 });
 
+
 // Discord接続状況の確認
-
 client.on('debug', message => {
-    // トークンを含むログは表示しない
     if (message.includes('Provided token')) return;
-
     console.log('[Discord DEBUG]', message);
 });
 
@@ -576,63 +574,19 @@ client.on('warn', message => {
     console.warn('[Discord WARN]', message);
 });
 
-console.log('Discord Gateway認証テスト開始');
+// Discordログイン
+console.log('Discordログイン処理を開始します');
 
-fetch('https://discord.com/api/v10/gateway/bot', {
-    headers: {
-        Authorization: `Bot ${TOKEN}`
-    }
-})
-.then(async response => {
-    console.log('Gateway認証ステータス:', response.status);
-    console.log('Content-Type:', response.headers.get('content-type'));
-    console.log('Retry-After:', response.headers.get('retry-after'));
-    console.log('CF-Ray:', response.headers.get('cf-ray'));
+const loginTimeout = setTimeout(() => {
+    console.error('Discordログインが30秒経っても完了しません');
+}, 30000);
 
-    const body = await response.text();
-    console.log('応答内容:', body.slice(0, 300));
-})
-.catch(error => {
-    console.error('Gateway認証エラー:', error.message);
-});
-
-async function diagnoseAndLogin() {
-    console.log('Discordログイン処理を開始します');
-
-    try {
-        console.log('login() 呼び出し直前');
-
-        const timeout = setTimeout(() => {
-            console.error('Discordログインが30秒経っても完了しません');
-        }, 30000);
-
-        await client.login(TOKEN);
-
-        clearTimeout(timeout);
+client.login(TOKEN)
+    .then(() => {
+        clearTimeout(loginTimeout);
         console.log('Discord login() 成功');
-    } catch (error) {
+    })
+    .catch(error => {
+        clearTimeout(loginTimeout);
         console.error('Discordログインエラー:', error);
-    }
-}
-
-client.on('error', error => {
-    console.error('[Client ERROR]', error);
-});
-
-client.on('shardError', error => {
-    console.error('[Shard ERROR]', error);
-});
-
-client.on('shardDisconnect', (event, id) => {
-    console.error('[Shard DISCONNECT]', id, event.code, event.reason);
-});
-
-client.on('shardReconnecting', id => {
-    console.log('[Shard RECONNECTING]', id);
-});
-
-client.on('shardReady', id => {
-    console.log('[Shard READY]', id);
-});
-
-diagnoseAndLogin();
+    });
