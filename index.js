@@ -475,14 +475,13 @@ client.on('warn', message => {
 
 console.log('Discord API通信テストを開始します');
 
-fetch('https://discord.com/api/v10/gateway')
+fetch('https://gateway.discord.gg/')
     .then(response => {
-        console.log('HTTPステータス:', response.status);
-        console.log('HTTP成功判定:', response.ok);
-        console.log('Content-Type:', response.headers.get('content-type'));
+        console.log('Gateway HTTPステータス:', response.status);
+        console.log('Gateway Content-Type:', response.headers.get('content-type'));
     })
     .catch(error => {
-        console.error('Discord API通信エラー:', error.message);
+        console.error('Gateway通信エラー:', error.message);
     });
 
 async function diagnoseAndLogin() {
