@@ -465,45 +465,14 @@ client.on('warn', message => {
 console.log('Discord API通信テストを開始します');
 
 async function diagnoseAndLogin() {
-    try {
-        const response = await fetch(
-            'https://discord.com/api/v10/gateway/bot',
-            {
-                headers: {
-                    Authorization: `Bot ${TOKEN}`
-                },
-                signal: AbortSignal.timeout(15000)
-            }
-        );
-
-        console.log('Discord APIステータス:', response.status);
-
-        const data = await response.json();
-
-        if (response.ok) {
-            console.log('Discord API通信成功');
-            console.log('Gateway URL取得成功:', Boolean(data.url));
-        } else {
-            console.error('Discord APIエラー:', {
-                message: data.message,
-                code: data.code
-            });
-        }
-
-    } catch (error) {
-        console.error('Discord API通信失敗:', error.message);
-    }
-
     console.log('Discordログイン処理を開始します');
 
-    client.login(TOKEN)
-        .then(() => {
-            console.log('Discord login() 成功');
-        })
-        .catch(error => {
-            console.error('Discordログインエラー:', error);
-        });
+    try {
+        await client.login(TOKEN);
+        console.log('Discord login() 成功');
+    } catch (error) {
+        console.error('Discordログインエラー:', error);
+    }
 }
 
 diagnoseAndLogin();
-
