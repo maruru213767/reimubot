@@ -472,17 +472,25 @@ client.on('warn', message => {
     console.warn('[Discord WARN]', message);
 });
 
+console.log('Discord Gateway認証テスト開始');
 
-console.log('Discord API通信テストを開始します');
+fetch('https://discord.com/api/v10/gateway/bot', {
+    headers: {
+        Authorization: `Bot ${TOKEN}`
+    }
+})
+.then(async response => {
+    console.log('Gateway認証ステータス:', response.status);
+    console.log('Content-Type:', response.headers.get('content-type'));
+    console.log('Retry-After:', response.headers.get('retry-after'));
+    console.log('CF-Ray:', response.headers.get('cf-ray'));
 
-fetch('https://gateway.discord.gg/')
-    .then(response => {
-        console.log('Gateway HTTPステータス:', response.status);
-        console.log('Gateway Content-Type:', response.headers.get('content-type'));
-    })
-    .catch(error => {
-        console.error('Gateway通信エラー:', error.message);
-    });
+    const body = await response.text();
+    console.log('応答内容:', body.slice(0, 300));
+})
+.catch(error => {
+    console.error('Gateway認証エラー:', error.message);
+});
 
 async function diagnoseAndLogin() {
     console.log('Discordログイン処理を開始します');
