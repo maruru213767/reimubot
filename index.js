@@ -574,6 +574,33 @@ client.on('warn', message => {
     console.warn('[Discord WARN]', message);
 });
 
+// Discord API認証テスト
+console.log('Discord API認証テスト開始');
+
+try {
+    const response = await fetch(
+        'https://discord.com/api/v10/gateway/bot',
+        {
+            headers: {
+                Authorization: `Bot ${TOKEN}`
+            }
+        }
+    );
+
+    console.log('Discord APIステータス:', response.status);
+
+    const result = await response.json();
+
+    if (response.ok) {
+        console.log('Gateway URL取得成功:', result.url);
+        console.log('推奨Shard数:', result.shards);
+    } else {
+        console.error('Discord APIエラー:', result);
+    }
+} catch (error) {
+    console.error('Discord API通信失敗:', error.message);
+}
+
 // Discordログイン
 console.log('Discordログイン処理を開始します');
 
