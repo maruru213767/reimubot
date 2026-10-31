@@ -178,6 +178,17 @@ const client = new Client({
     ]
 });
 
+client.once('ready', () => {
+    console.log('================================');
+    console.log('Discord Bot 起動成功！');
+    console.log('Bot名:', client.user.tag);
+    console.log('================================');
+});
+
+client.on('error', error => {
+    console.error('[Discord ERROR]', error);
+});
+
 // Render用Webサーバー
 const PORT = process.env.PORT || 10000;
 
@@ -468,7 +479,15 @@ async function diagnoseAndLogin() {
     console.log('Discordログイン処理を開始します');
 
     try {
+        console.log('login() 呼び出し直前');
+
+        const timeout = setTimeout(() => {
+            console.error('Discordログインが30秒経っても完了しません');
+        }, 30000);
+
         await client.login(TOKEN);
+
+        clearTimeout(timeout);
         console.log('Discord login() 成功');
     } catch (error) {
         console.error('Discordログインエラー:', error);
