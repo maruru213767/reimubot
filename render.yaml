@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: reimubot-python
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DATA_DIR
+        value: ./data
